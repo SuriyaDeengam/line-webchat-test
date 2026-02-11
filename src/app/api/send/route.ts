@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
   const { message, userId } = await req.json();
 
   addMessage(userId, {
-    type: "user",
+    type: "oa",
     text: message,
     timestamp: Date.now(),
   });
