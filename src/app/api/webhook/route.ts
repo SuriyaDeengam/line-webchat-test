@@ -2,19 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { addMessage } from "@/lib/chatStore";
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  try {
+    const body = await req.json();
 
-  const events = body.events || [];
+    console.log("Webhook body:", JSON.stringify(body));
 
-  for (const event of events) {
-    if (event.type === "message" && event.message.type === "text") {
-      addMessage({
-        type: "oa",
-        text: event.message.text,
-        timestamp: Date.now(),
-      });
+    const events = body.events || [];
+
+    for (const event of events) {
+      if (event.type === "message" && event.message.type === "text") {
+        addMessage({
+          type: "oa",
+          text: event.message.text,
+          timestamp: Date.now(),
+        });
+      }
     }
-  }
 
-  return NextResponse.json({ status: "ok" });
+    return NextResponse.json({ status: "ok" });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "Webhook error" }, { status: 500 });
+  }
 }
