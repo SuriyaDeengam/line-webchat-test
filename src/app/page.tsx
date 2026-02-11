@@ -13,7 +13,6 @@ type User = {
   displayName: string;
   pictureUrl?: string;
 };
-
 export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -28,49 +27,61 @@ export default function Home() {
     setUsers(data);
 
     setSelectedUser((prev) => {
-      if (!data.length) return null;
-      if (!prev) return data[0];
+      if (prev && data.includes(prev)) {
+        return prev;
+      }
 
-      const stillExists = data.find((u: User) => u.userId === prev.userId);
-      return stillExists || data[0];
+      return data.length > 0 ? data[0] : null;
     });
   };
 
   const fetchMessages = async (userId: string) => {
-    const res = await fetch(`/api/messages?userId=${userId}`);
-    const data = await res.json();
-    setMessages(data);
+    try {
+      const res = await fetch(`/api/messages?userId=${userId}`);
+      const data = await res.json();
+      setMessages(data);
+    } catch (err) {
+      console.error("Fetch messages error:", err);
+    }
   };
 
   const sendMessage = async () => {
     if (!input.trim() || !selectedUser) return;
 
-    await fetch("/api/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: input,
-        userId: selectedUser.userId,
-      }),
-    });
+    try {
+      await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: input,
+          userId: selectedUser,
+        }),
+      });
 
-    setInput("");
-    fetchMessages(selectedUser.userId);
+      setInput("");
+      fetchMessages(selectedUser?.userId);
+    } catch (err) {
+      console.error("Send error:", err);
+    }
   };
 
   useEffect(() => {
     fetchUsers();
-    const interval = setInterval(fetchUsers, 5000);
+
+    const interval = setInterval(() => {
+      fetchUsers();
+    }, 5000);
+
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     if (!selectedUser) return;
 
-    fetchMessages(selectedUser.userId);
+    fetchMessages(selectedUser?.userId);
 
     const interval = setInterval(() => {
-      fetchMessages(selectedUser.userId);
+      fetchMessages(selectedUser?.userId);
     }, 2000);
 
     return () => clearInterval(interval);
@@ -86,15 +97,18 @@ export default function Home() {
       <div className="w-1/4 bg-white border-r p-4 overflow-y-auto">
         <h2 className="text-lg text-black font-bold mb-4">Users</h2>
 
+        {users.length === 0 && (
+          <p className="text-gray-400 text-sm">No users yet</p>
+        )}
+
         {users.map((user) => (
           <div
             key={user.userId}
             onClick={() => setSelectedUser(user)}
-            className={`flex items-center gap-3 p-2 mb-2 rounded cursor-pointer transition ${
-              selectedUser?.userId === user.userId
+            className={`flex items-center gap-3 p-2 mb-2 rounded cursor-pointer transition ${selectedUser?.userId === user.userId
                 ? "bg-blue-500 text-white"
                 : "bg-gray-200 hover:bg-gray-300"
-            }`}
+              }`}
           >
             {user.pictureUrl && (
               <img
@@ -111,7 +125,7 @@ export default function Home() {
       <div className="flex-1 flex flex-col p-6">
         <h1 className="text-xl text-black font-bold mb-4">
           {selectedUser
-            ? `Chat with ${selectedUser.displayName}`
+            ? `Chat with ${selectedUser}`
             : "Select a user"}
         </h1>
 
@@ -119,16 +133,14 @@ export default function Home() {
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`mb-2 ${
-                msg.type === "user" ? "text-right" : "text-left"
-              }`}
+              className={`mb-2 ${msg.type === "user" ? "text-right" : "text-left"
+                }`}
             >
               <span
-                className={`inline-block px-4 py-2 rounded-lg ${
-                  msg.type === "user"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-300 text-black"
-                }`}
+                className={`inline-block px-4 py-2 rounded-lg ${msg.type === "user"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-300 text-black"
+                  }`}
               >
                 {msg.text}
               </span>
@@ -143,8 +155,8 @@ export default function Home() {
               className="flex-1 text-black border p-2 rounded-l"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               placeholder="Type a message..."
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             />
             <button
               onClick={sendMessage}
