@@ -39,7 +39,6 @@ export default function Home() {
   const fetchMessages = async (userId: string) => {
     const res = await fetch(`/api/messages?userId=${userId}`);
     const data = await res.json();
-    console.log('data',data);
     
     setMessages(data);
   };
@@ -84,7 +83,6 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
       <div className="w-1/4 bg-white border-r p-4 overflow-y-auto">
         <h2 className="text-lg text-black font-bold mb-4">Users</h2>
 
@@ -109,7 +107,6 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Chat Area */}
       <div className="flex-1 flex flex-col p-6">
         <h1 className="text-xl text-black font-bold mb-4">
           {selectedUser
