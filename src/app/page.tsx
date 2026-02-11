@@ -13,7 +13,6 @@ export default function Home() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-
   // โหลดรายชื่อ user
   const fetchUsers = async () => {
     const res = await fetch("/api/users");
@@ -64,21 +63,20 @@ export default function Home() {
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
       <div className="w-1/4 bg-white border-r p-4">
-        <h2 className="text-lg font-bold mb-4">Users</h2>
+        <h2 className="text-lg text-black font-bold mb-4">Users</h2>
 
         {users.length === 0 && (
-          <p className="text-gray-400 text-sm">No users yet</p>
+          <p className="text-black text-sm">No users yet</p>
         )}
 
         {users.map((user) => (
           <div
             key={user}
             onClick={() => setSelectedUser(user)}
-            className={`p-2 mb-2 rounded cursor-pointer text-sm break-all ${
-              selectedUser === user
+            className={`p-2 mb-2 rounded cursor-pointer text-sm break-all ${selectedUser === user
                 ? "bg-blue-500 text-white"
                 : "bg-gray-200"
-            }`}
+              }`}
           >
             {user}
           </div>
@@ -87,7 +85,7 @@ export default function Home() {
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col p-6">
-        <h1 className="text-xl font-bold mb-4">
+        <h1 className="text-xl text-black font-bold mb-4 ">
           {selectedUser
             ? `Chat with ${selectedUser}`
             : "Select a user"}
@@ -97,16 +95,14 @@ export default function Home() {
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`mb-2 ${
-                msg.type === "user" ? "text-right" : "text-left"
-              }`}
+              className={`mb-2 ${msg.type === "user" ? "text-right" : "text-left"
+                }`}
             >
               <span
-                className={`inline-block px-4 py-2 rounded-lg ${
-                  msg.type === "user"
+                className={`inline-block text-black px-4 py-2 rounded-lg ${msg.type === "user"
                     ? "bg-blue-500 text-white"
                     : "bg-gray-300"
-                }`}
+                  }`}
               >
                 {msg.text}
               </span>
@@ -117,7 +113,7 @@ export default function Home() {
         {selectedUser && (
           <div className="flex">
             <input
-              className="flex-1 border p-2 rounded-l"
+              className="flex-1 text-black  border p-2 rounded-l"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type a message..."
