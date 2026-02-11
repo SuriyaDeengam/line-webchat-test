@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addMessage } from "@/lib/chatStore";
+import { addMessage, addUserIfNotExists } from "@/lib/chatStore";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -12,8 +12,28 @@ export async function POST(req: NextRequest) {
     ) {
       const userId = event.source.userId;
 
+      // 🔥 ดึง profile จาก LINE
+      const profileRes = await fetch(
+        `https://api.line.me/v2/bot/profile/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`,
+          },
+        }
+      );
+
+      const profile = await profileRes.json();
+
+      // สร้าง user ถ้ายังไม่มี
+      addUserIfNotExists(
+        userId,
+        profile.displayName || "Unknown",
+        profile.pictureUrl
+      );
+
+      // เก็บข้อความจาก user
       addMessage(userId, {
-        type: "oa",
+        type: "user",
         text: event.message.text,
         timestamp: Date.now(),
       });

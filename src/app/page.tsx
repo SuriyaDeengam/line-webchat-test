@@ -8,105 +8,74 @@ type Message = {
   timestamp: number;
 };
 
+type User = {
+  userId: string;
+  displayName: string;
+  pictureUrl?: string;
+};
+
 export default function Home() {
-  const [users, setUsers] = useState<string[]>([]);
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // ======================
-  // Fetch Users
-  // ======================
   const fetchUsers = async () => {
-    try {
-      const res = await fetch("/api/users");
-      const data = await res.json();
+    const res = await fetch("/api/users");
+    const data = await res.json();
 
-      setUsers((prev) => {
-        // อัปเดตเฉพาะเมื่อจำนวนเปลี่ยน
-        if (prev.length !== data.length) {
-          return data;
-        }
-        return prev;
-      });
+    setUsers(data);
 
-      // set default user แค่ครั้งแรกจริง ๆ
-      if (!selectedUser && data.length > 0) {
-        setSelectedUser(data[0]);
-      }
-    } catch (err) {
-      console.error("Fetch users error:", err);
-    }
+    setSelectedUser((prev) => {
+      if (!data.length) return null;
+      if (!prev) return data[0];
+
+      const stillExists = data.find((u: User) => u.userId === prev.userId);
+      return stillExists || data[0];
+    });
   };
 
-  // ======================
-  // Fetch Messages
-  // ======================
   const fetchMessages = async (userId: string) => {
-    try {
-      const res = await fetch(`/api/messages?userId=${userId}`);
-      const data = await res.json();
-      setMessages(data);
-    } catch (err) {
-      console.error("Fetch messages error:", err);
-    }
+    const res = await fetch(`/api/messages?userId=${userId}`);
+    const data = await res.json();
+    setMessages(data);
   };
 
-  // ======================
-  // Send Message
-  // ======================
   const sendMessage = async () => {
     if (!input.trim() || !selectedUser) return;
 
-    try {
-      await fetch("/api/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: input,
-          userId: selectedUser,
-        }),
-      });
+    await fetch("/api/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: input,
+        userId: selectedUser.userId,
+      }),
+    });
 
-      setInput("");
-      fetchMessages(selectedUser);
-    } catch (err) {
-      console.error("Send error:", err);
-    }
+    setInput("");
+    fetchMessages(selectedUser.userId);
   };
 
-  // ======================
-  // Load users (poll every 5 sec)
-  // ======================
   useEffect(() => {
     fetchUsers();
-
-    const interval = setInterval(() => {
-      fetchUsers();
-    }, 5000);
-
+    const interval = setInterval(fetchUsers, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // ======================
-  // Poll messages when selectedUser changes
-  // ======================
   useEffect(() => {
     if (!selectedUser) return;
 
-    fetchMessages(selectedUser);
+    fetchMessages(selectedUser.userId);
 
     const interval = setInterval(() => {
-      fetchMessages(selectedUser);
+      fetchMessages(selectedUser.userId);
     }, 2000);
 
     return () => clearInterval(interval);
   }, [selectedUser]);
 
-  // ======================
-  // Auto scroll
-  // ======================
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -117,21 +86,23 @@ export default function Home() {
       <div className="w-1/4 bg-white border-r p-4 overflow-y-auto">
         <h2 className="text-lg text-black font-bold mb-4">Users</h2>
 
-        {users.length === 0 && (
-          <p className="text-gray-400 text-sm">No users yet</p>
-        )}
-
         {users.map((user) => (
           <div
-            key={user}
+            key={user.userId}
             onClick={() => setSelectedUser(user)}
-            className={`p-2 mb-2 rounded cursor-pointer text-sm break-all transition ${
-              selectedUser === user
+            className={`flex items-center gap-3 p-2 mb-2 rounded cursor-pointer transition ${
+              selectedUser?.userId === user.userId
                 ? "bg-blue-500 text-white"
                 : "bg-gray-200 hover:bg-gray-300"
             }`}
           >
-            {user}
+            {user.pictureUrl && (
+              <img
+                src={user.pictureUrl}
+                className="w-8 h-8 rounded-full"
+              />
+            )}
+            <span className="text-sm">{user.displayName}</span>
           </div>
         ))}
       </div>
@@ -140,7 +111,7 @@ export default function Home() {
       <div className="flex-1 flex flex-col p-6">
         <h1 className="text-xl text-black font-bold mb-4">
           {selectedUser
-            ? `Chat with ${selectedUser}`
+            ? `Chat with ${selectedUser.displayName}`
             : "Select a user"}
         </h1>
 
@@ -172,8 +143,8 @@ export default function Home() {
               className="flex-1 text-black border p-2 rounded-l"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type a message..."
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              placeholder="Type a message..."
             />
             <button
               onClick={sendMessage}
