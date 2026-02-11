@@ -119,14 +119,14 @@ export default function Home() {
             <div
               key={index}
               className={`mb-2 ${
-                msg.type === "user" ? "text-right" : "text-left"
+                msg.type === "oa" ? "text-right" : "text-left"
               }`}
             >
               <span
                 className={`inline-block px-4 py-2 rounded-lg ${
-                  msg.type === "user"
+                  msg.type === "oa"
                     ? "bg-blue-500 text-white"
-                    : "bg-gray-300 text-black"
+                    : "bg-green-500 text-white"
                 }`}
               >
                 {msg.text}
