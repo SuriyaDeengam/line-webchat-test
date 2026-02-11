@@ -4,12 +4,26 @@ export type ChatMessage = {
   timestamp: number;
 };
 
-let messages: ChatMessage[] = [];
-
-export const addMessage = (msg: ChatMessage) => {
-  messages.push(msg);
+type ChatRooms = {
+  [userId: string]: ChatMessage[];
 };
 
-export const getMessages = () => {
-  return messages;
+let rooms: ChatRooms = {};
+
+export const addMessage = (
+  userId: string,
+  msg: ChatMessage
+) => {
+  if (!rooms[userId]) {
+    rooms[userId] = [];
+  }
+  rooms[userId].push(msg);
+};
+
+export const getMessages = (userId: string) => {
+  return rooms[userId] || [];
+};
+
+export const getAllUsers = () => {
+  return Object.keys(rooms);
 };

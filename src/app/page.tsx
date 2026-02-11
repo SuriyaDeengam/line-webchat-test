@@ -9,73 +9,128 @@ type Message = {
 };
 
 export default function Home() {
-  const [message, setMessage] = useState("");
+  const [users, setUsers] = useState<string[]>([]);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
 
-  const sendMessage = async () => {
-    if (!message) return;
+  // โหลดรายชื่อ user
+  const fetchUsers = async () => {
+    const res = await fetch("/api/users");
+    const data = await res.json();
+    setUsers(data);
 
-    await fetch("/api/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
-    });
-
-    setMessage("");
-    fetchMessages();
+    if (!selectedUser && data.length > 0) {
+      setSelectedUser(data[0]);
+    }
   };
 
-  const fetchMessages = async () => {
-    const res = await fetch("/api/messages");
+  // โหลดข้อความตาม userId
+  const fetchMessages = async (userId: string) => {
+    const res = await fetch(`/api/messages?userId=${userId}`);
     const data = await res.json();
     setMessages(data);
   };
 
+  // ส่งข้อความ
+  const sendMessage = async () => {
+    if (!input || !selectedUser) return;
+
+    await fetch("/api/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: input,
+        userId: selectedUser,
+      }),
+    });
+
+    setInput("");
+    fetchMessages(selectedUser);
+  };
+
+  // polling
   useEffect(() => {
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 2000);
+    fetchUsers();
+    const interval = setInterval(() => {
+      fetchUsers();
+      if (selectedUser) fetchMessages(selectedUser);
+    }, 2000);
+
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedUser]);
 
   return (
-    <main className="flex flex-col h-screen bg-gray-100 p-6">
-      <h1 className="text-2xl font-bold mb-4">LINE Webchat</h1>
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar */}
+      <div className="w-1/4 bg-white border-r p-4">
+        <h2 className="text-lg font-bold mb-4">Users</h2>
 
-      <div className="flex-1 bg-white p-4 rounded overflow-y-auto mb-4 shadow">
-        {messages.map((msg, index) => (
+        {users.length === 0 && (
+          <p className="text-gray-400 text-sm">No users yet</p>
+        )}
+
+        {users.map((user) => (
           <div
-            key={index}
-            className={`mb-2 ${
-              msg.type === "user" ? "text-right" : "text-left"
+            key={user}
+            onClick={() => setSelectedUser(user)}
+            className={`p-2 mb-2 rounded cursor-pointer text-sm break-all ${
+              selectedUser === user
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200"
             }`}
           >
-            <span
-              className={`inline-block px-4 py-2 rounded-lg ${
-                msg.type === "user"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-300"
-              }`}
-            >
-              {msg.text}
-            </span>
+            {user}
           </div>
         ))}
       </div>
 
-      <div className="flex">
-        <input
-          className="flex-1 border p-2 rounded-l"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type a message..."
-        />
-        <button
-          onClick={sendMessage}
-          className="bg-blue-500 text-white px-6 rounded-r"
-        >
-          Send
-        </button>
+      {/* Chat Area */}
+      <div className="flex-1 flex flex-col p-6">
+        <h1 className="text-xl font-bold mb-4">
+          {selectedUser
+            ? `Chat with ${selectedUser}`
+            : "Select a user"}
+        </h1>
+
+        <div className="flex-1 bg-white p-4 rounded shadow overflow-y-auto mb-4">
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`mb-2 ${
+                msg.type === "user" ? "text-right" : "text-left"
+              }`}
+            >
+              <span
+                className={`inline-block px-4 py-2 rounded-lg ${
+                  msg.type === "user"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-300"
+                }`}
+              >
+                {msg.text}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {selectedUser && (
+          <div className="flex">
+            <input
+              className="flex-1 border p-2 rounded-l"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type a message..."
+            />
+            <button
+              onClick={sendMessage}
+              className="bg-blue-500 text-white px-6 rounded-r"
+            >
+              Send
+            </button>
+          </div>
+        )}
       </div>
-    </main>
+    </div>
   );
 }

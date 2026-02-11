@@ -2,63 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { addMessage } from "@/lib/chatStore";
 
 export async function POST(req: NextRequest) {
-    try {
-        const body = await req.json();
-        const { message } = body;
+  const { message, userId } = await req.json();
 
-        addMessage({
-            type: "user",
-            text: message,
-            timestamp: Date.now(),
-        });
-        if (!message) {
-            return NextResponse.json(
-                { error: "Message is required" },
-                { status: 400 }
-            );
-        }
+  addMessage(userId, {
+    type: "user",
+    text: message,
+    timestamp: Date.now(),
+  });
 
-        const response = await fetch(
-            "https://api.line.me/v2/bot/message/push",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`,
-                },
-                body: JSON.stringify({
-                    to: process.env.LINE_USER_ID,
-                    messages: [
-                        {
-                            type: "text",
-                            text: message,
-                        },
-                    ],
-                }),
-            }
-        );
+  await fetch("https://api.line.me/v2/bot/message/push", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`,
+    },
+    body: JSON.stringify({
+      to: userId,
+      messages: [{ type: "text", text: message }],
+    }),
+  });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error("LINE API Error:", data);
-            return NextResponse.json(
-                { error: "LINE API Error", detail: data },
-                { status: response.status }
-            );
-        }
-
-        return NextResponse.json({
-            success: true,
-            lineResponse: data,
-        });
-    } catch (error) {
-        console.error("Server Error:", error);
-
-        return NextResponse.json(
-            { error: "Internal Server Error" },
-            { status: 500 }
-        );
-    }
-
+  return NextResponse.json({ success: true });
 }
